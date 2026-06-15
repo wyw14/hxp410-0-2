@@ -1,0 +1,47 @@
+﻿# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+**/dist/
+build/
+**/build/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Caches and temporary files
+.cache/
+**/.cache/
+.vite/
+**/.vite/
+*.tsbuildinfo
+.tmp/
+tmp/
+temp/
+.DS_Store
+Thumbs.db
+
+# Large/package artifacts
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.iso
+*.dmg
+*.exe
+*.msi
