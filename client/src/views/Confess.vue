@@ -13,6 +13,23 @@
       </div>
 
       <div class="form-group">
+        <label class="mood-label">此刻的心情是？</label>
+        <div class="mood-selector">
+          <div
+            v-for="mood in moods"
+            :key="mood.key"
+            class="mood-item"
+            :class="{ active: selectedMood === mood.key }"
+            :style="{ '--mood-color': mood.color }"
+            @click="selectMood(mood.key)"
+          >
+            <span class="mood-emoji">{{ mood.emoji }}</span>
+            <span class="mood-text">{{ mood.label }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
         <textarea
           v-model="secretContent"
           class="secret-input"
@@ -71,7 +88,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import ForgivenessAnimation from '../components/ForgivenessAnimation.vue'
 
@@ -81,6 +98,22 @@ const submitting = ref(false)
 const error = ref('')
 const showAnimation = ref(false)
 const showComplete = ref(false)
+const moods = ref([])
+const selectedMood = ref(null)
+
+async function fetchMoods() {
+  try {
+    const response = await fetch('/api/moods')
+    const data = await response.json()
+    moods.value = data.moods
+  } catch (err) {
+    console.error('获取心情列表失败:', err)
+  }
+}
+
+function selectMood(moodKey) {
+  selectedMood.value = selectedMood.value === moodKey ? null : moodKey
+}
 
 async function submitSecret() {
   if (!secretContent.value.trim()) {
@@ -103,7 +136,8 @@ async function submitSecret() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        content: secretContent.value
+        content: secretContent.value,
+        mood: selectedMood.value
       })
     })
 
@@ -129,6 +163,7 @@ function handleAnimationComplete() {
 
 function resetForm() {
   secretContent.value = ''
+  selectedMood.value = null
   showComplete.value = false
   error.value = ''
   submitting.value = false
@@ -137,12 +172,72 @@ function resetForm() {
 function goHome() {
   router.push('/')
 }
+
+onMounted(() => {
+  fetchMoods()
+})
 </script>
 
 <style scoped>
 .confess-container {
   width: 100%;
   max-width: 600px;
+}
+
+.mood-label {
+  display: block;
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.mood-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.mood-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+  min-width: 80px;
+}
+
+.mood-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.mood-item.active {
+  border-color: var(--mood-color);
+  background: color-mix(in srgb, var(--mood-color) 10%, white);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mood-color) 20%, transparent);
+}
+
+.mood-emoji {
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+
+.mood-text {
+  font-size: 13px;
+  color: #555;
+  font-weight: 500;
+}
+
+.mood-item.active .mood-text {
+  color: var(--mood-color);
 }
 
 .confess-card {

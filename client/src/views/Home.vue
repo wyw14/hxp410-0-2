@@ -6,6 +6,30 @@
         <h2>今日被宽恕的秘密</h2>
       </div>
 
+      <div class="mood-filter">
+        <span class="filter-label">按心情筛选：</span>
+        <div class="filter-buttons">
+          <button
+            class="filter-btn"
+            :class="{ active: selectedMood === 'all' }"
+            @click="filterByMood('all')"
+          >
+            全部
+          </button>
+          <button
+            v-for="mood in moods"
+            :key="mood.key"
+            class="filter-btn"
+            :class="{ active: selectedMood === mood.key }"
+            :style="{ '--mood-color': mood.color }"
+            @click="filterByMood(mood.key)"
+          >
+            <span class="filter-emoji">{{ mood.emoji }}</span>
+            {{ mood.label }}
+          </button>
+        </div>
+      </div>
+
       <div v-if="loading" class="loading">
         <div class="spinner"></div>
         <p>正在寻找一段温暖的秘密...</p>
@@ -21,6 +45,10 @@
 
       <transition name="fade" v-else>
         <div class="secret-content" :key="secret?.id">
+          <div v-if="getMoodInfo(secret.mood)" class="mood-tag" :style="{ '--mood-color': getMoodInfo(secret.mood).color }">
+            <span class="mood-emoji">{{ getMoodInfo(secret.mood).emoji }}</span>
+            <span class="mood-label">{{ getMoodInfo(secret.mood).label }}</span>
+          </div>
           <p class="secret-text">"{{ secret.content }}"</p>
           <div class="secret-footer">
             <span class="status-badge">{{ secret.status }}</span>
@@ -49,11 +77,35 @@ const loading = ref(true)
 const hasSecret = ref(false)
 const secret = ref(null)
 const message = ref('')
+const moods = ref([])
+const selectedMood = ref('all')
+
+async function fetchMoods() {
+  try {
+    const response = await fetch('/api/moods')
+    const data = await response.json()
+    moods.value = data.moods
+  } catch (err) {
+    console.error('获取心情列表失败:', err)
+  }
+}
+
+function getMoodInfo(moodKey) {
+  return moods.value.find(m => m.key === moodKey) || null
+}
+
+async function filterByMood(moodKey) {
+  selectedMood.value = moodKey
+  await fetchRandomSecret()
+}
 
 async function fetchRandomSecret() {
   loading.value = true
   try {
-    const response = await fetch('/api/secrets/random')
+    const url = selectedMood.value === 'all'
+      ? '/api/secrets/random'
+      : `/api/secrets/random?mood=${selectedMood.value}`
+    const response = await fetch(url)
     const data = await response.json()
     hasSecret.value = data.hasSecret
     secret.value = data.secret
@@ -71,8 +123,9 @@ function goToConfess() {
   router.push('/confess')
 }
 
-onMounted(() => {
-  fetchRandomSecret()
+onMounted(async () => {
+  await fetchMoods()
+  await fetchRandomSecret()
 })
 </script>
 
@@ -84,6 +137,76 @@ onMounted(() => {
 
 .secret-card {
   animation: slideUp 0.6s ease;
+}
+
+.mood-filter {
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.filter-label {
+  display: block;
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.filter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  border: 1.5px solid #e0e0e0;
+  background: white;
+  border-radius: 20px;
+  font-size: 13px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-btn:hover {
+  border-color: #ccc;
+  background: #f5f5f5;
+}
+
+.filter-btn.active {
+  border-color: var(--mood-color, #667eea);
+  background: color-mix(in srgb, var(--mood-color, #667eea) 15%, white);
+  color: var(--mood-color, #667eea);
+  font-weight: 500;
+}
+
+.filter-emoji {
+  font-size: 16px;
+}
+
+.mood-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: color-mix(in srgb, var(--mood-color) 15%, white);
+  border: 1.5px solid var(--mood-color);
+  border-radius: 20px;
+  margin-bottom: 20px;
+}
+
+.mood-tag .mood-emoji {
+  font-size: 18px;
+}
+
+.mood-tag .mood-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--mood-color);
 }
 
 @keyframes slideUp {
